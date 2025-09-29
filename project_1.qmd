@@ -1,0 +1,149 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+```{r}
+install.packages(c("httr","jsonlite"))
+library(httr)
+library(jsonlite)
+```
+
+```{r}
+
+url <- "https://api.census.gov/data/2022/acs/acs1/pums?get=AGEP,SEX,PWGTP"
+
+resp <- GET(url)
+str(resp, max.level = 1)  
+
+helper <- function(resp,
+                   numeric_vars = NULL,
+                   categorical_vars = NULL) {
+  parsed <- fromJSON(rawToChar(resp$content))
+  
+  colnames(parsed) <- parsed[1, ]     
+  dat <- as_tibble(parsed[-1, ]) 
+  
+  # convert numeric vars
+  if (!is.null(numeric_vars)) {
+    for (v in numeric_vars) if (v %in% names(dat)) {
+      dat[[v]] <- suppressWarnings(as.numeric(dat[[v]]))
+    }
+  }
+  
+  # convert categorical vars
+  if (!is.null(categorical_vars)) {
+    for (v in categorical_vars) if (v %in% names(dat)) {
+      dat[[v]] <- as.factor(dat[[v]])
+    }
+  }
+  
+  return(dat)
+}
+```
+
+```{r}
+pums_tbl <- helper(resp)
+
+glimpse(pums_tbl)
+```
+
+```{r}
+
+query_census <- function(year = 2022,
+                         num_var = c("AGEP","PWGTP"),
+                         cat_var = "SEX",
+                         geo = c("All","Region","Division","State"),
+                         geo_values = NULL) {
+  library(httr); library(jsonlite); library(tibble); library(dplyr)
+
+  if (!is.numeric(year) || length(year) != 1 || year < 2010 || year > 2022)
+    stop("year must be a single number in 2010–2022", call. = FALSE)
+
+  # always include PWGTP
+  if (!"PWGTP" %in% num_var) num_var <- c("PWGTP", num_var)
+
+  num_allowed <- c("AGEP","GASP","GRPIP","JWAP","JWDP","JWMNP","PWGTP")
+  cat_allowed <- c("FER","HHL","HISPEED","JWTRNS","SCH","SCHL","SEX")
+
+  num_var <- toupper(num_var); cat_var <- toupper(cat_var)
+  stopifnot(all(num_var %in% num_allowed), all(cat_var %in% cat_allowed))
+  if (length(setdiff(num_var,"PWGTP")) < 1) stop("need ≥1 numeric besides PWGTP")
+  if (length(cat_var) < 1) stop("need ≥1 categorical")
+
+  geo <- match.arg(geo)
+  # only ST can be filtered server-side; REGION/DIVISION will be filtered client-side
+  geog_var <- switch(geo,
+    "All"      = NULL,
+    "State"    = "ST",
+    "Region"   = "REGION",
+    "Division" = "DIVISION"
+  )
+
+  # ---- build URL: no REGION/DIVISION in query string ----
+  base <- sprintf("https://api.census.gov/data/%d/acs/acs1/pums", as.integer(year))
+  get_vars <- paste(c(unique(num_var), unique(cat_var),
+                      # include REGION/DIVISION in the return set if the user asked for them
+                      if (geo %in% c("Region","Division")) geog_var),
+                    collapse = ",")
+  qs <- paste0("get=", get_vars)
+
+  # only add ST filter to URL; others will be post-filtered
+  geo_part <- ""
+  if (!is.null(geog_var) && geog_var == "ST" && length(geo_values)) {
+    geo_vals <- paste0("ST=", geo_values)
+    geo_part <- paste0("&", paste(geo_vals, collapse = "&"))
+  }
+
+  url <- paste0(base, "?", qs, geo_part)
+
+  resp <- GET(url)
+  if (resp$status_code != 200) stop("API request failed (", resp$status_code, "): ", url, call. = FALSE)
+
+  # use helper() to parse and type most vars; time vars handled below
+  time_vars <- intersect(num_var, c("JWAP","JWDP"))
+  numeric_for_helper <- setdiff(num_var, time_vars)
+  dat <- helper(resp, numeric_vars = numeric_for_helper, categorical_vars = c(cat_var, if (geo %in% c("Region","Division")) geog_var))
+
+  # time bins → midpoint minutes
+  jw_to_minutes <- function(x) {
+    code <- suppressWarnings(as.numeric(x)); ok <- !is.na(code) & code >= 1 & code <= 48
+    out <- rep(NA_real_, length(x)); out[ok] <- (code[ok]-1)*30 + 15; out
+  }
+  if ("JWAP" %in% names(dat)) dat$JWAP <- jw_to_minutes(dat$JWAP)
+  if ("JWDP" %in% names(dat)) dat$JWDP <- jw_to_minutes(dat$JWDP)
+
+  # label SEX
+  if ("SEX" %in% names(dat)) dat$SEX <- factor(dat$SEX, levels = c("1","2"), labels = c("Male","Female"))
+
+  # client-side filter for Region/Division if requested 
+  if (geo == "Region" && length(geo_values)) {
+    if (!"REGION" %in% names(dat)) stop("REGION not returned; add it to get=.")
+    dat <- dat %>% filter(.data$REGION %in% as.character(geo_values))
+  }
+  if (geo == "Division" && length(geo_values)) {
+    if (!"DIVISION" %in% names(dat)) stop("DIVISION not returned; add it to get=.")
+    dat <- dat %>% filter(.data$DIVISION %in% as.character(geo_values))
+  }
+
+  dat$YEAR <- as.integer(year)
+  class(dat) <- c("census", class(dat))
+  dat
+}
+
+```
+
+```{r}
+# simple default
+d1 <- query_census()
+
+# region subset, with a time variable
+d2 <- query_census(year = 2022,
+                   num_var = c("JWAP","PWGTP"),
+                   cat_var = c("SEX","JWTRNS"),
+                   geo = "Region", geo_values = c(1,3))
+
+glimpse(d2)
+
+```
