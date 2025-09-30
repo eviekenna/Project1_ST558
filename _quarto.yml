@@ -1,0 +1,28 @@
+project:
+  type: website
+
+website:
+  title: "Census API Project"
+  navbar:
+    left:
+      - href: project_1.qmd
+        text: Project Report
+
+format:
+  html:
+    theme: cosmo        # or "flatly", "litera", etc. for clean look
+    toc: true           # add table of contents
+    toc-depth: 2
+    code-fold: true     # collapsible code blocks
+    code-summary: "Show/Hide Code"
+    number-sections: true
+
+execute:
+  echo: true            # show code by default
+  warning: false        # hide warnings in output
+  message: false        # hide package startup messages
+  
+github-pages:
+  branch: main
+  path: docs
+
