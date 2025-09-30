@@ -261,3 +261,21 @@ summary.census <- function(object,
 ```{r}
 summary.census(d2)
 ```
+
+```{r}
+library(ggplot2)
+
+
+plot.census <- function(x, cat_var, num_var, ...) {
+  x[[cat_var]] <- as.factor(x[[cat_var]])   # make x-axis categorical
+  x[[num_var]] <- as.numeric(x[[num_var]])  # make y-axis numeric
+
+  ggplot(x, aes(x = get(cat_var), y = get(num_var), weight = PWGTP)) +
+    geom_boxplot()
+}
+
+```
+
+```{r}
+plot.census(d2, cat_var = "JWTRNS", num_var = "JWAP")
+```
