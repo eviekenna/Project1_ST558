@@ -143,6 +143,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul class="collapse">
   <li><a href="#data-processing" id="toc-data-processing" class="nav-link active" data-scroll-target="#data-processing"><span class="header-section-number">1</span> Data Processing</a></li>
   <li><a href="#writing-a-generic-function-for-summarizing" id="toc-writing-a-generic-function-for-summarizing" class="nav-link" data-scroll-target="#writing-a-generic-function-for-summarizing"><span class="header-section-number">2</span> Writing a Generic Function for Summarizing</a></li>
+  <li><a href="#mini-investigation-commute-time-by-transportation-mode-and-by-sex-2022" id="toc-mini-investigation-commute-time-by-transportation-mode-and-by-sex-2022" class="nav-link" data-scroll-target="#mini-investigation-commute-time-by-transportation-mode-and-by-sex-2022"><span class="header-section-number">3</span> Mini-investigation: Commute time by transportation mode (and by sex), 2022</a></li>
   </ul>
 </nav>
     </div>
@@ -482,7 +483,7 @@ $ PWGTP &lt;dbl&gt; 3, 42, 11, 32, 31, 32, 45, 37, 29, 55, 12, 41, 14, 3, 119, 9
 <span id="cb6-82"><a href="#cb6-82" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-<p>Light tests (single year) — demonstrate each requirement is met</p>
+<p>Light tests (single year) — demonstrate each requirement is met:</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Show/Hide Code</summary>
@@ -508,6 +509,13 @@ $ REGION &lt;fct&gt; South, Northeast, South, South, South, South, South, Northe
 $ YEAR   &lt;int&gt; 2022, 2022, 2022, 2022, 2022, 2022, 2022, 2022, 2022, 2022, 202…</code></pre>
 </div>
 </div>
+<section id="region-subset-with-time-and-categorical-variables-d2" class="level4" data-number="1.2.1">
+<h4 data-number="1.2.1" class="anchored" data-anchor-id="region-subset-with-time-and-categorical-variables-d2"><span class="header-section-number">1.2.1</span> Region subset with time and categorical variables (d2)</h4>
+<p>This test calls our function where we add a time variable (<code>JWAP</code>) and a categorical (<code>JWTRNS</code>), filtering to two regions.<br>
+The output tibble contains <code>JWAP</code> converted to minutes, <code>SEX</code> labeled, and <code>JWTRNS</code> with descriptive categories.<br>
+The <code>REGION</code> column is present, and filtering reduces the dataset to the requested regions.<br>
+This shows that client-side filtering is working correctly.</p>
+<hr>
 <p>Finally, we wanted to study multiple years at once. To do this efficiently, we wrote <strong><code>query_census_multi()</code></strong>, which loops over a vector of years with <code>lapply()</code>. For each year, it calls <code>query_census()</code>. If a year fails (because the API endpoint doesn’t exist, like in 2020), it gets skipped with a message. All the successful results are then bound together into a single tibble with a <code>YEAR</code> column for comparison.</p>
 <div class="cell">
 <details class="code-fold">
@@ -591,9 +599,26 @@ Levels: Northeast Midwest South West</code></pre>
 <pre><code>NULL</code></pre>
 </div>
 </div>
+</section>
+<section id="years-check-m1" class="level4" data-number="1.2.2">
+<h4 data-number="1.2.2" class="anchored" data-anchor-id="years-check-m1"><span class="header-section-number">1.2.2</span> Years check (m1)</h4>
+<p>We query multiple years (2019–2022). The result shows only available years are returned (e.g., skipping 2020).<br>
+The YEAR column is included, confirming that the wrapper correctly loops through years, applies error handling,<br>
+and binds results.</p>
+</section>
+<section id="region-filter-across-years-m2" class="level4" data-number="1.2.3">
+<h4 data-number="1.2.3" class="anchored" data-anchor-id="region-filter-across-years-m2"><span class="header-section-number">1.2.3</span> Region filter across years (m2)</h4>
+<p>This test repeats the regional filtering but across 2018–2022. The <code>unique(m2$REGION)</code> output shows only the<br>
+requested region codes are included, verifying that the client-side filter works consistently across multiple years.</p>
+</section>
+<section id="state-filter-m3" class="level4" data-number="1.2.4">
+<h4 data-number="1.2.4" class="anchored" data-anchor-id="state-filter-m3"><span class="header-section-number">1.2.4</span> State filter (m3)</h4>
+<p>Here we test state-level filtering with <code>geo = "State"</code>. The summary shows only the requested FIPS codes are<br>
+present in the <code>ST</code> column. This demonstrates that server-side state filtering is functioning properly.</p>
 <p>Note on Multi-Year Pulls:</p>
 <p>Not every year is available in the ACS1 PUMS API. For example, <strong>2020</strong> was disrupted by COVID and doesn’t appear at the standard endpoint. When a year is missing, the API returns a <strong>404/400 error</strong>.</p>
 <p>To handle this, my <code>query_census_multi</code> wrapper uses <code>tryCatch()</code> to <strong>skip failed years gracefully</strong>. The function prints a message like <em>“Skipping year 2020: API request failed”</em> and continues binding only the successful years. The result is a combined tibble with a <code>YEAR</code> column for downstream analysis.</p>
+</section>
 </section>
 </section>
 <section id="writing-a-generic-function-for-summarizing" class="level2" data-number="2">
@@ -717,91 +742,112 @@ Levels: Northeast Midwest South West</code></pre>
 <span id="cb16-113"><a href="#cb16-113" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-<div class="cell">
-<details class="code-fold">
-<summary>Show/Hide Code</summary>
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary.census</span>(d2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
-<div class="cell-output cell-output-stdout">
-<pre><code>$numeric
-  variable weighted_mean weighted_sd      n weight_sum
-1     JWAP      512.8807    208.5276 718137   75604396
-
-$categorical
-   variable          level weighted_n         prop
-1       SEX           Male   91442225 0.4922690552
-2       SEX         Female   94314373 0.5077309448
-3    JWTRNS  Car/truck/van   68131516 0.7665110117
-4    JWTRNS            Bus    1396842 0.0157151174
-5    JWTRNS    Subway/rail    1726911 0.0194285461
-6    JWTRNS          Train     346090 0.0038936723
-7    JWTRNS     Light rail      61318 0.0006898558
-8    JWTRNS          Ferry      40364 0.0004541136
-9    JWTRNS           Taxi     264258 0.0029730245
-10   JWTRNS     Motorcycle      93604 0.0010530882
-11   JWTRNS        Bicycle     324527 0.0036510786
-12   JWTRNS         Walked    2102026 0.0236487630
-13   JWTRNS Work from home   13280845 0.1494156381
-14   JWTRNS          Other    1116940 0.0125660907
-15   REGION      Northeast   57040406 0.3070706861
-16   REGION          South  128716192 0.6929293139</code></pre>
-</div>
-</div>
 <p>We created a custom plotting method, <code>plot.census()</code>, to visualize Census data with weighted boxplots. The function takes one categorical and one numeric variable, converts them to the right types, and uses survey weights (<code>PWGTP</code>) in the plot. A set of descriptive labels replaces variable codes (e.g., <code>AGEP</code> → “Age (years)”) to make axes and titles easier to read. This provides a quick way to compare numeric outcomes across demographic groups.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Show/Hide Code</summary>
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>plot.census <span class="ot">&lt;-</span> <span class="cf">function</span>(x, cat_var, num_var, ...) {</span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Ensure categorical variable is treated as a factor</span></span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>  x[[cat_var]] <span class="ot">&lt;-</span> <span class="fu">as.factor</span>(x[[cat_var]])</span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Ensure numeric variable is treated as numeric</span></span>
-<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>  x[[num_var]] <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(x[[num_var]])</span>
-<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a> </span>
-<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Descriptive labels</span></span>
-<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>  var_labels <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
-<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">"AGEP"</span> <span class="ot">=</span> <span class="st">"Age (years)"</span>,</span>
-<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">"JWAP"</span> <span class="ot">=</span> <span class="st">"Arrival Time at Work (minutes after midnight)"</span>,</span>
-<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">"JWDP"</span> <span class="ot">=</span> <span class="st">"Departure Time for Work (minutes after midnight)"</span>,</span>
-<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>    <span class="st">"JWMNP"</span> <span class="ot">=</span> <span class="st">"Travel Time to Work (minutes)"</span>,</span>
-<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>    <span class="st">"GASP"</span> <span class="ot">=</span> <span class="st">"Monthly Gas Cost ($)"</span>,</span>
-<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>    <span class="st">"GRPIP"</span> <span class="ot">=</span> <span class="st">"Gross Rent as % of Income"</span>,</span>
-<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>    <span class="st">"SEX"</span> <span class="ot">=</span> <span class="st">"Sex"</span>,</span>
-<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>    <span class="st">"JWTRNS"</span> <span class="ot">=</span> <span class="st">"Mode of Transportation"</span>,</span>
-<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>    <span class="st">"SCHL"</span> <span class="ot">=</span> <span class="st">"Educational Attainment"</span>,</span>
-<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>    <span class="st">"SCH"</span> <span class="ot">=</span> <span class="st">"School Enrollment"</span></span>
-<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a> </span>
-<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Look up user-friendly axis labels if available, otherwise use raw variable names</span></span>
-<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a>  x_label <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(cat_var <span class="sc">%in%</span> <span class="fu">names</span>(var_labels), var_labels[cat_var], cat_var)</span>
-<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a>  y_label <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(num_var <span class="sc">%in%</span> <span class="fu">names</span>(var_labels), var_labels[num_var], num_var)</span>
-<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a> </span>
-<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Build weighted boxplot using ggplot2</span></span>
-<span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(x, <span class="fu">aes</span>(<span class="at">x =</span> <span class="fu">get</span>(cat_var), <span class="at">y =</span> <span class="fu">get</span>(num_var), <span class="at">weight =</span> PWGTP)) <span class="sc">+</span></span>
-<span id="cb19-28"><a href="#cb19-28" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_boxplot</span>() <span class="sc">+</span></span>
-<span id="cb19-29"><a href="#cb19-29" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(</span>
-<span id="cb19-30"><a href="#cb19-30" aria-hidden="true" tabindex="-1"></a>      <span class="at">x =</span> x_label,</span>
-<span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a>      <span class="at">y =</span> y_label,</span>
-<span id="cb19-32"><a href="#cb19-32" aria-hidden="true" tabindex="-1"></a>      <span class="at">title =</span> <span class="fu">paste</span>(y_label, <span class="st">"by"</span>, x_label)</span>
-<span id="cb19-33"><a href="#cb19-33" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">+</span></span>
-<span id="cb19-34"><a href="#cb19-34" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
-<span id="cb19-35"><a href="#cb19-35" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">45</span>, <span class="at">hjust =</span> <span class="dv">1</span>))  </span>
-<span id="cb19-36"><a href="#cb19-36" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>plot.census <span class="ot">&lt;-</span> <span class="cf">function</span>(x, cat_var, num_var, ...) {</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Ensure categorical variable is treated as a factor</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  x[[cat_var]] <span class="ot">&lt;-</span> <span class="fu">as.factor</span>(x[[cat_var]])</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Ensure numeric variable is treated as numeric</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>  x[[num_var]] <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(x[[num_var]])</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a> </span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Descriptive labels</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>  var_labels <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">"AGEP"</span> <span class="ot">=</span> <span class="st">"Age (years)"</span>,</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">"JWAP"</span> <span class="ot">=</span> <span class="st">"Arrival Time at Work (minutes after midnight)"</span>,</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">"JWDP"</span> <span class="ot">=</span> <span class="st">"Departure Time for Work (minutes after midnight)"</span>,</span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>    <span class="st">"JWMNP"</span> <span class="ot">=</span> <span class="st">"Travel Time to Work (minutes)"</span>,</span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>    <span class="st">"GASP"</span> <span class="ot">=</span> <span class="st">"Monthly Gas Cost ($)"</span>,</span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>    <span class="st">"GRPIP"</span> <span class="ot">=</span> <span class="st">"Gross Rent as % of Income"</span>,</span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>    <span class="st">"SEX"</span> <span class="ot">=</span> <span class="st">"Sex"</span>,</span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>    <span class="st">"JWTRNS"</span> <span class="ot">=</span> <span class="st">"Mode of Transportation"</span>,</span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>    <span class="st">"SCHL"</span> <span class="ot">=</span> <span class="st">"Educational Attainment"</span>,</span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a>    <span class="st">"SCH"</span> <span class="ot">=</span> <span class="st">"School Enrollment"</span></span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a> </span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Look up user-friendly axis labels if available, otherwise use raw variable names</span></span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a>  x_label <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(cat_var <span class="sc">%in%</span> <span class="fu">names</span>(var_labels), var_labels[cat_var], cat_var)</span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a>  y_label <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(num_var <span class="sc">%in%</span> <span class="fu">names</span>(var_labels), var_labels[num_var], num_var)</span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a> </span>
+<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Build weighted boxplot using ggplot2</span></span>
+<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(x, <span class="fu">aes</span>(<span class="at">x =</span> <span class="fu">get</span>(cat_var), <span class="at">y =</span> <span class="fu">get</span>(num_var), <span class="at">weight =</span> PWGTP)) <span class="sc">+</span></span>
+<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_boxplot</span>() <span class="sc">+</span></span>
+<span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(</span>
+<span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a>      <span class="at">x =</span> x_label,</span>
+<span id="cb17-31"><a href="#cb17-31" aria-hidden="true" tabindex="-1"></a>      <span class="at">y =</span> y_label,</span>
+<span id="cb17-32"><a href="#cb17-32" aria-hidden="true" tabindex="-1"></a>      <span class="at">title =</span> <span class="fu">paste</span>(y_label, <span class="st">"by"</span>, x_label)</span>
+<span id="cb17-33"><a href="#cb17-33" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">+</span></span>
+<span id="cb17-34"><a href="#cb17-34" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb17-35"><a href="#cb17-35" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">45</span>, <span class="at">hjust =</span> <span class="dv">1</span>))  </span>
+<span id="cb17-36"><a href="#cb17-36" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
+</section>
+<section id="mini-investigation-commute-time-by-transportation-mode-and-by-sex-2022" class="level2" data-number="3">
+<h2 data-number="3" class="anchored" data-anchor-id="mini-investigation-commute-time-by-transportation-mode-and-by-sex-2022"><span class="header-section-number">3</span> Mini-investigation: Commute time by transportation mode (and by sex), 2022</h2>
+<p>To explore something meaningful from the ACS microdata, we focused on <strong>commuting patterns</strong>. Using our <code>query_census()</code> function, we requested 2022 data on <strong>time of departure/arrival, travel time (JWMNP), mode of transport (JWTRNS), and sex (SEX)</strong>.</p>
+<p>We then passed the result to our <code>summary.census()</code> function. The numeric summary confirmed that average commute times cluster around 25–30 minutes, but with wide variation depending on the mode of transport. The categorical summary showed that car/truck/van remains the dominant mode, while public transit modes (bus, subway/rail) represent smaller but nontrivial shares.</p>
+<p>Finally, we visualized the relationship with our <code>plot.census()</code> function. The boxplot below shows that <strong>commute time varies strongly by mode of transportation</strong>. Subway/rail and ferry users have much higher median commute times and wider variability, reflecting longer distances and transfer delays. In contrast, <strong>walking and working from home</strong> sit near zero, while car commutes cluster tightly around 20–30 minutes.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Show/Hide Code</summary>
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot.census</span>(d2, <span class="at">cat_var =</span> <span class="st">"JWTRNS"</span>, <span class="at">num_var =</span> <span class="st">"JWAP"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Pull 2022 commute data: numeric = JWMNP (commute minutes), PWGTP (weights)</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="co"># categorical = JWTRNS (mode), SEX (for subgrouping/labels)</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>d22 <span class="ot">&lt;-</span> <span class="fu">query_census</span>(</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">year    =</span> <span class="dv">2022</span>,</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">num_var =</span> <span class="fu">c</span>(<span class="st">"JWMNP"</span>,<span class="st">"PWGTP"</span>),</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">cat_var =</span> <span class="fu">c</span>(<span class="st">"JWTRNS"</span>,<span class="st">"SEX"</span>),</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">geo     =</span> <span class="st">"All"</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Weighted summaries using summary.census()</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>s22 <span class="ot">&lt;-</span> <span class="fu">summary.census</span>(</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>  d22,</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">numeric_vars     =</span> <span class="fu">c</span>(<span class="st">"JWMNP"</span>),   <span class="co"># summarize commute time</span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">categorical_vars =</span> <span class="fu">c</span>(<span class="st">"JWTRNS"</span>,<span class="st">"SEX"</span>)</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a><span class="co"># View numeric summary</span></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(s22<span class="sc">$</span>numeric)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 1
+Columns: 5
+$ variable      &lt;chr&gt; "JWMNP"
+$ weighted_mean &lt;dbl&gt; 10.79463
+$ weighted_sd   &lt;dbl&gt; 19.28697
+$ n             &lt;int&gt; 3373378
+$ weight_sum    &lt;dbl&gt; 333287562</code></pre>
+</div>
+<details class="code-fold">
+<summary>Show/Hide Code</summary>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># View categorical summary</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(s22<span class="sc">$</span>categorical)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 14
+Columns: 4
+$ variable   &lt;chr&gt; "JWTRNS", "JWTRNS", "JWTRNS", "JWTRNS", "JWTRNS", "JWTRNS",…
+$ level      &lt;chr&gt; "Car/truck/van", "Bus", "Subway/rail", "Train", "Light rail…
+$ weighted_n &lt;dbl&gt; 124224522, 2408456, 1935738, 466319, 127562, 63463, 385299,…
+$ prop       &lt;dbl&gt; 0.7730161858, 0.0149871816, 0.0120455831, 0.0029017792, 0.0…</code></pre>
+</div>
+<details class="code-fold">
+<summary>Show/Hide Code</summary>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Weighted boxplot of commute time by transportation mode (uses PWGTP internally)</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot.census</span>(d22, <span class="st">"JWTRNS"</span>, <span class="st">"JWMNP"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="proj_1_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="proj_1_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 </div>
+<p>Together, the summaries and visualization confirm that <strong>mode of transportation is the key driver of commute duration</strong>, more so than demographic splits by sex. This investigation demonstrates how our pipeline—API query, weighted summary, and weighted visualization—can be applied to extract insights from ACS PUMS data.</p>
 
 
 </section>
