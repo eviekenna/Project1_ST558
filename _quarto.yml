@@ -1,4 +1,24 @@
 project:
   type: website
   output-dir: docs
+  
+website:
+  title: "Census API Project"
+  navbar:
+    left:
+      - href: proj_1.qmd
+        text: Project Report
 
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 2
+    code-fold: true
+    code-summary: "Show/Hide Code"
+    number-sections: true
+
+execute:
+  echo: true
+  warning: false
+  message: false
