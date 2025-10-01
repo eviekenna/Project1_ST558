@@ -6,7 +6,7 @@ website:
   title: "Census API Project"
   navbar:
     left:
-      - href: project_1.qmd
+      - href: proj_1.qmd
         text: Project Report
 
 format:
